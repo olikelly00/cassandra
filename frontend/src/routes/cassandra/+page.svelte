@@ -123,6 +123,7 @@
       rgba(0, 0, 0, 0.7),
       rgba(19, 5, 0, 0.7)
     );
+    color: rgb(197, 176, 176);
     box-shadow: 0 0 1em 4px rgba(149, 35, 4, 0.5);
     border-radius: 20px;
     padding: 0.4em;
@@ -132,6 +133,8 @@
     min-width: 20em;
     text-align: center;
     font-size: 1.2rem;
+    font-family: MedievalSharp, Arial, Helvetica, sans-serif;
+
   }
 
   button {
@@ -147,6 +150,7 @@
     transition: 0.2s;
     animation: box 2s infinite;
     border-radius: 20px;
+    font-family: MedievalSharp, Arial, Helvetica, sans-serif;
   }
 
   button:hover {
