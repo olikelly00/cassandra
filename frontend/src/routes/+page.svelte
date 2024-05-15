@@ -109,6 +109,8 @@
     min-width: 20em;
     text-align: center;
     font-size: 1.2rem;
+    color: rgb(197, 176, 176);
+    font-family: MedievalSharp, Arial, Helvetica, sans-serif;
   }
 
   button {
@@ -124,6 +126,7 @@
     transition: 0.2s;
     animation: box 2s infinite;
     border-radius: 20px;
+    font-family: MedievalSharp, Arial, Helvetica, sans-serif;
   }
 
   button:hover {
@@ -207,6 +210,7 @@
       transform: translateX(0);
     }
   }
+
 
   @keyframes box {
     0% {

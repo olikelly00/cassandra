@@ -549,6 +549,7 @@
     color: #fff;
     font-size: 15px;
     cursor: pointer;
+    font-family: MedievalSharp, Arial, Helvetica, sans-serif;
   }
 
   .interpretation-container {
