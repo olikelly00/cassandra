@@ -1,5 +1,7 @@
 package models
 
+// JSONCard represents a tarot card struct that has been converted into JSON so that it can be rendered in the UI.
+
 type JSONCard struct {
 	CardName       string `json:"name"`
 	Type           string `json:"type"`

@@ -84,6 +84,10 @@ func InterpretTarotCards(apiKey string, cards []string, RequestID uuid.UUID, use
 
 	}
 
+	if len(response.Choices) == 0 {
+		return "", fmt.Errorf("no choices in response")
+	}
+
 	cleanedText := strings.ReplaceAll(response.Choices[0].Text, "[", "")
 	cleanedText = strings.ReplaceAll(cleanedText, "]", "")
 

@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+
 	"io"
 	"net/http"
 	"net/http/httptest"
+
+	// "errors"
+
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -118,7 +122,7 @@ func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ResponseCode() {
 // This test sets up a GET request to the /cards path (to fetch three cards) and then to the /cards/interpret/requestID path (to get a reading of those cards).
 // It then unmarshals the response data from JSON into Go structs. The test then uses the assert package to check that, while in test mode, the interpretation of the cards is "This is a test interpretation".
 
-func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ExpectedFormat() {
+func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ExpectedFormatTestMode() {
 	app := suite.app
 
 	responseData := RequestSetup(app, suite, "GET", "/cards")
