@@ -1,5 +1,7 @@
 package models
 
+// Card represents a tarot card.
+
 type Card struct {
 	CardName       string `json:"name"`
 	Type           string `json:"type"`

@@ -14,16 +14,10 @@ import (
 	"main.go/controllers"
 	"main.go/env"
 	"main.go/models"
-	// "gorm.io/gorm"
 )
 
 type TestSuiteEnv struct {
 	suite.Suite
-	// db      *gorm.DB
-	// token   string
-	// token2  string
-	// userID  int
-	// userID2 int
 	app *gin.Engine
 	res *httptest.ResponseRecorder
 }
@@ -38,37 +32,22 @@ func RequestSetup(app *gin.Engine, suite *TestSuiteEnv, reqType string, path str
 // Tests are run before they start
 func (suite *TestSuiteEnv) SetupSuite() {
 	env.LoadEnv(".test.env")
-	// models.OpenDatabaseConnection()
-	// models.AutoMigrateModels()
-	// suite.db = models.Database
+
 	suite.app = setupApp()
-	// suite.userID = 1
-	// suite.token, _ = auth.GenerateToken(uint(suite.userID))
-	// suite.userID2 = 2
-	// suite.token2, _ = auth.GenerateToken(uint(suite.userID2))
 
 }
 
 func (suite *TestSuiteEnv) SetupTest() {
 	suite.res = httptest.NewRecorder()
-	// suite.TearDownTest()
+
 }
 
-// Running after each test
-// func (suite *TestSuiteEnv) TearDownTest() {
-// 	suite.db.Exec("DELETE FROM comments")
-// 	suite.db.Exec("DELETE FROM posts")
-// 	suite.db.Exec("DELETE FROM users")
-
-// }
-
-// This gets run automatically by `go test` so we call `suite.Run` inside it
+// This function actually runs our test suite when we run 'go test' in terminal.
 func TestSuite(t *testing.T) {
-	// This is what actually runs our suite
 	suite.Run(t, new(TestSuiteEnv))
 }
 
-// Checks that the response code is 200
+// This test sets up a GET request to the /cards path and unmarshals the response data from JSON into Go structs. The test then uses the assert package to check the response code of this request was 200/OK.
 func (suite *TestSuiteEnv) Test_GetThreeCards_ResponseCode() {
 	app := suite.app
 	responseData := RequestSetup(app, suite, "GET", "/cards")
@@ -82,7 +61,7 @@ func (suite *TestSuiteEnv) Test_GetThreeCards_ResponseCode() {
 	assert.Equal(suite.T(), 200, suite.res.Code)
 }
 
-// Checks that the response is 3 cards
+// This test sets up a GET request to the /cards path and unmarshals the response data from JSON into Go structs. The test then uses the assert package to check the length of the slice of Card structs is 3.
 func (suite *TestSuiteEnv) Test_GetThreeCards_ExpectedFormat() {
 	app := suite.app
 	responseData := RequestSetup(app, suite, "GET", "/cards")
@@ -96,7 +75,7 @@ func (suite *TestSuiteEnv) Test_GetThreeCards_ExpectedFormat() {
 	assert.Len(suite.T(), jsonCards.Cards, 3)
 }
 
-// Checks that two different responses given two different sets of cards
+// This function sets up a GET request to fetch three cards from the tarot deck. It then sets up a second request and compares the results of both to check they are different. This tests that the 'random' generation is working properly.
 func (suite *TestSuiteEnv) Test_GetThreeCardsIsRandom() {
 	app := suite.app
 
@@ -117,7 +96,8 @@ func (suite *TestSuiteEnv) Test_GetThreeCardsIsRandom() {
 	assert.NotEqual(suite.T(), jsonCards.Cards[0].CardName, jsonCards2.Cards[0].CardName) //1 in 24336 of this failing!!!
 }
 
-// Checks that the response code is 200
+// This test sets up a GET request to the /cards path (to fetch three cards) and then to the /cards/interpret/requestID path (to get a reading of those cards).
+// It then unmarshals the response data from JSON into Go structs. The test then uses the assert package to check the response code of this request was 200/OK.
 
 func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ResponseCode() {
 	app := suite.app
@@ -135,7 +115,9 @@ func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ResponseCode() {
 	assert.Equal(suite.T(), 200, suite.res.Code)
 }
 
-// Checks that the interpretation response is as expected
+// This test sets up a GET request to the /cards path (to fetch three cards) and then to the /cards/interpret/requestID path (to get a reading of those cards).
+// It then unmarshals the response data from JSON into Go structs. The test then uses the assert package to check that, while in test mode, the interpretation of the cards is "This is a test interpretation".
+
 func (suite *TestSuiteEnv) Test_GetAndInterpretCards_ExpectedFormat() {
 	app := suite.app
 

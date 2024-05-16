@@ -13,20 +13,20 @@ import (
 	"main.go/models"
 )
 
-// FetchTarotCards makes a GET request to the API to fetch tarot cards
-// and returns a slice of Card structs representing the cards.
+// The FetchTarotCards function makes a GET request to the API to fetch tarot cards. If there is an error during the GET request, the error is reported.
+
+//Otherwise, the function decodes the response from its JSON format into a slice of Card structs representing the full tarot deck. If there is an error during the decoding operation, the error is reported. Otherwise, the function then returns the slice of Card structs.
+
 func FetchTarotCards() ([]models.Card, error) {
 
 	apiUrl := "https://tarotapi.dev/api/v1/cards"
 
-	// Send GET request to the API
 	resp, err := http.Get(apiUrl)
 	if err != nil {
 		errors.SendInternalError(nil, fmt.Errorf("failed to make GET request: %v", err))
 	}
 	defer resp.Body.Close()
 
-	// Decode JSON response into a slice of Card structs
 	var cardsResponse struct {
 		Cards []models.Card `json:"cards"`
 	}
@@ -37,7 +37,14 @@ func FetchTarotCards() ([]models.Card, error) {
 	return cardsResponse.Cards, nil
 }
 
-// InterpretTarotCards interprets tarot cards using the OpenAI API
+// InterpretTarotCards takes the API key (for authentication with OpenAI's API), a slice of strings representing the names of the tarot cards, a requestID (unique identifier for the request), a user story (what the user has said they want a reading about), and a user name as input.
+
+// It constructs a prompt string using the user story, user name, and card names. It then sends a POST request to the OpenAI API with the constructed prompt and the API key. Then, the function reads the response body and unmarshals it into a Response struct.
+
+// The function then cleans the response text by removing square brackets and returns the cleaned text (a string) and a nil error.
+
+// If any errors occur during the API request or response processing, or the unmarshalling operation, an error is returned.
+
 func InterpretTarotCards(apiKey string, cards []string, RequestID uuid.UUID, userStory string, userName string) (string, error) {
 	client := &http.Client{}
 
@@ -76,7 +83,7 @@ func InterpretTarotCards(apiKey string, cards []string, RequestID uuid.UUID, use
 		errors.SendInternalError(nil, fmt.Errorf("error unmarshaling response: %v", err))
 
 	}
-	//Removing square brackets as the prompt doesnt always eliminate them
+
 	cleanedText := strings.ReplaceAll(response.Choices[0].Text, "[", "")
 	cleanedText = strings.ReplaceAll(cleanedText, "]", "")
 

@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	// gin.SetMode(gin.ReleaseMode)
+	//gin.SetMode(gin.ReleaseMode)
 
 	// if the above line is not called in main.go the App will always run in debug mode
 	// and detailed errors will be shown to the user.
