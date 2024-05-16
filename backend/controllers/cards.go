@@ -7,18 +7,24 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/gin-gonic/gin"
-	"main.go/errors"
+	"github.com/google/uuid"
 	"main.go/models"
 	"main.go/services"
 )
 
 // Local storage for interpretations and UUIDs
+
 var LocalStorage map[string]string = make(map[string]string)
 
-// Function to select 3 random tarot cards from the deck
+// GetRandomCard selects a random tarot card from the provided deck, ensuring that
+// the selected card is not a duplicate of any card already present in the currentCards slice.
+
+// deck is a slice of Card structs representing the full tarot deck.
+// currentCards is a slice of Card structs representing the cards already selected.
+
+// Returns a single Card struct from the deck that is not a duplicate of any card in currentCards.
+
 func GetRandomCard(deck []models.Card, currentCards []models.Card) models.Card {
 	randomiser := rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -40,29 +46,74 @@ func GetRandomCard(deck []models.Card, currentCards []models.Card) models.Card {
 	}
 }
 
-// Function to get and interpret 3 tarot cards
+// GetandInterpretThreeCards calls the FetchTarotCards function, which returns a slice of Card structs and assigns the variable name 'deck' to it.
+
+// It then calls the drawThreeCards function, which takes the deck returned by FetchTarotCards, selects three random cards from the deck, returns them as a slice of Card structs under the variable name 'threeCards'.
+
+// It then calls the convertCardsToJSON function, which takes the threeCards slice as input. It converts threeCards into three JSONCard structs and returns them. It also returns a slice of strings containing the names of the three cards. These strings will be interpolated into the prompt sent to OpenAI's API.
+
 func GetandInterpretThreeCards(ctx *gin.Context) {
-	deck, err := services.FetchTarotCards() //returns a type of []Card
+	deck, err := services.FetchTarotCards()
 	if err != nil {
-		errors.SendInternalError(ctx, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to fetch tarot cards: %v", err),
+		})
 		return
 	}
 	requestID := uuid.New()
+
+	threeCards := drawThreeCards(deck)
+
+	jsonCards, cardNames := convertCardsToJSON(threeCards)
+
+	ctx.JSON(http.StatusOK, gin.H{"cards": jsonCards, "requestID": requestID})
+	userStory := ctx.Query("userstory")
+	userName := ctx.Query("name")
+	fmt.Print(userName, userStory)
+
+	// This asynchronous function within GetandInterpretThreeCards sends the card names to the OpenAI API to generate an interpretation of the three cards. That interpretation is then stored in the LocalStorage map, with the requestID (UUID) as the key.
+
+	// If the app is running in test mode, a test interpretation is generated and stored in the 'LocalStorage' map instead, to save wasting OpenAI credits.
+
+	// Then the function calls the GetInterpretation function, responsile for finding and retrieving the interpretation from localStorage, using the requestID generated earlier.
+
+	go func() {
+		testing := os.Getenv("TESTING")
+		if testing == "True" {
+			interpretation := "This is a test interpretation"
+			LocalStorage[requestID.String()] = interpretation
+			return
+		}
+		apiKey := os.Getenv("API_KEY")
+		interpretation, err := services.InterpretTarotCards(apiKey, cardNames, requestID, userStory, userName)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("Failed to interpret tarot cards: %v", err),
+			})
+			return
+		}
+		LocalStorage[requestID.String()] = interpretation
+		GetInterpretation(ctx)
+		fmt.Println(interpretation)
+	}()
+}
+
+func drawThreeCards(deck []models.Card) []models.Card {
 	var threeCards []models.Card
-	threeCards = append(threeCards, GetRandomCard(deck, threeCards))
-	threeCards = append(threeCards, GetRandomCard(deck, threeCards))
-	threeCards = append(threeCards, GetRandomCard(deck, threeCards))
+	for i := 0; i < 3; i++ {
+		threeCards = append(threeCards, GetRandomCard(deck, threeCards))
+	}
+	return threeCards
+}
 
-	// from here below we convert the three Card into three JSONCard
-
+func convertCardsToJSON(cards []models.Card) ([]models.JSONCard, []string) {
 	var jsonCards []models.JSONCard
 	var cardNames []string
 
-	for _, card := range threeCards {
-		//decide if card is reversed or not
+	for _, card := range cards {
+
 		reversed := ReverseRandomiser()
 
-		//edit the title with (Reversed) if applicable
 		var FinalCardName string
 		if reversed {
 			FinalCardName = card.CardName + " (Reversed)"
@@ -80,63 +131,29 @@ func GetandInterpretThreeCards(ctx *gin.Context) {
 			Reversed:       reversed,
 		})
 
-		var reversedValue string
-		card.Reversed = reversed
-		if card.Reversed {
-			reversedValue = "(Reversed)"
+		if reversed {
+			cardNames = append(cardNames, card.CardName, "(Reversed)")
 		} else {
-			reversedValue = ""
+			cardNames = append(cardNames, card.CardName)
 		}
-
-		cardNames = append(cardNames, card.CardName, reversedValue)
 	}
 
-	//here we send our three Cards and the requestID in JSON form to the client, to be rendered in the UI.
-
-	ctx.JSON(http.StatusOK, gin.H{"cards": jsonCards, "requestID": requestID})
-	userStory := ctx.Query("userstory")
-	userName := ctx.Query("name")
-	fmt.Print(userName, userStory)
-
-	// here we use Open AI's API to generate a reading of our three cards, we store this reading locally to return it to the user later.
-	go func() {
-		testing := os.Getenv("TESTING")
-		if testing == "True" {
-			interpretation := "This is a test interpretation"
-			LocalStorage[requestID.String()] = interpretation
-			return
-		}
-		apiKey := os.Getenv("API_KEY")
-		interpretation, err := services.InterpretTarotCards(apiKey, cardNames, requestID, userStory, userName)
-		if err != nil {
-			errors.SendInternalError(ctx, err)
-			return
-		}
-		LocalStorage[requestID.String()] = interpretation
-		GetInterpretation(ctx)
-		fmt.Println(interpretation)
-	}()
+	return jsonCards, cardNames
 }
 
-// function to send the interpretation from the internal storage to the frontend
 func GetInterpretation(ctx *gin.Context) {
-	// Get the UUID from the request parameters
 	requestID := ctx.Param("uuid")
 
-	// Retrieve the interpretation from local storage
 	interpretation, ok := LocalStorage[requestID]
 
-	// Check if the interpretation was found
 	if !ok {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "No interpretation found for this UUID"})
 		return
 	}
 
-	// Return the interpretation
 	ctx.JSON(http.StatusOK, gin.H{"interpretation": interpretation})
 }
 
-// function to generate reversed cards at random
 func ReverseRandomiser() bool {
 	randomiser := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randomBool := randomiser.Intn(2)
